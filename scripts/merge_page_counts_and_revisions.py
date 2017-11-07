@@ -2,6 +2,20 @@ import datetime
 import pandas
 import urllib
 
+# Data from running queries like below on https://quarry.wmflabs.org
+# SELECT page_namespace, page_title, date, edits, minor_edits
+# FROM (
+#   SELECT rev_page,
+#        LEFT(rev_timestamp, 8) as date,
+#          COUNT(*) AS edits,
+#            SUM(rev_minor_edit) as minor_edits
+#     FROM revision
+#     WHERE rev_timestamp BETWEEN "20160401" AND "20160402"
+#     GROUP BY rev_page, date
+# ) as page_edits
+# JOIN page ON rev_page = page_id
+# WHERE page_namespace IN (0, 1)
+
 def extract_article_name(s):
   return s.split(':')[-1]
 
@@ -50,8 +64,8 @@ if __name__ == '__main__':
       suffixes=('_l', '_r'))
 
     # Drop redundant info (since it's merged in)
-    # del merged_ns_split['page_title']
-    # del merged_ns_split['page_namespace']
+    del merged_ns_split['page_title']
+    del merged_ns_split['page_namespace']
 
     merged_main = merged_ns_split[merged_ns_split['Article Namespace'] == 0]
     merged_talk = merged_ns_split[merged_ns_split['Article Namespace'] == 1]
@@ -64,35 +78,38 @@ if __name__ == '__main__':
       right_on=['Article Name'],
       suffixes=('', '_talk'))
 
+    del merged['Article Namespace_talk']
+    del merged['date_talk']
+
     ## double commented lines can be uncommented to get sample data.
     ## TODO: Delete this, move to another file, or add a parameter
-    edited_ns_split = pandas.merge(
-      view_counts,
-      revisions,
-      how='inner',
-      left_on=['Article Name', 'Article Namespace'],
-      right_on=['page_title', 'page_namespace'],
-      suffixes=('_l', '_r'))
-    edited_main = edited_ns_split[edited_ns_split['Article Namespace'] == 0]
-    edited_talk = edited_ns_split[edited_ns_split['Article Namespace'] == 1]
-    edited = pandas.merge(
-      edited_main,
-      edited_talk,
-      how='outer',
-      left_on=['Article Name'],
-      right_on=['Article Name'],
-      suffixes=('', '_talk'))
+    ## edited_ns_split = pandas.merge(
+    ##   view_counts,
+    ##   revisions,
+    ##   how='inner',
+    ##   left_on=['Article Name', 'Article Namespace'],
+    ##   right_on=['page_title', 'page_namespace'],
+    ##   suffixes=('_l', '_r'))
+    ## edited_main = edited_ns_split[edited_ns_split['Article Namespace'] == 0]
+    ## edited_talk = edited_ns_split[edited_ns_split['Article Namespace'] == 1]
+    ## edited = pandas.merge(
+    ##   edited_main,
+    ##   edited_talk,
+    ##   how='outer',
+    ##   left_on=['Article Name'],
+    ##   right_on=['Article Name'],
+    ##   suffixes=('', '_talk'))
 
     print("{}: Table clean-up".format(date_str))
     merged[['edits', 'minor_edits']] = merged[['edits', 'minor_edits']].fillna(value=0)
     merged[['date']] = merged[['date']].fillna(value=date_str)
 
     print("{}: Writing table".format(date_str))
-    # merged.to_csv('../../Wiki/combined-{}.csv'.format(date_str))
+    merged.to_csv('../../Wiki/combined-{}.csv'.format(date_str))
     ##
-    merged_sample = merged.sample(frac=0.003, replace=False)
-    merged_sample.to_csv('../../Wiki/combined-sample-{}.csv'.format(date_str))
-    edited.to_csv('../../Wiki/combined-{}-edits-only.csv'.format(date_str))
+    ## merged_sample = merged.sample(frac=0.003, replace=False)
+    ## merged_sample.to_csv('../../Wiki/combined-sample-{}.csv'.format(date_str))
+    ## edited.to_csv('../../Wiki/combined-{}-edits-only.csv'.format(date_str))
 
     curr_date += one_day
  
