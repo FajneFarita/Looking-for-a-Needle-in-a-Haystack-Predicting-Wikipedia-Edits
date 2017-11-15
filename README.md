@@ -1,6 +1,6 @@
 # info-251-fall-2017-final-project
 ## Downloading data
-1) Unzip `data/raw_data.edits.zip`
+1) Unzip `data/raw_data/edits.zip`
 2) From the top level directory, run `python
 scripts/merge_page_counts_and_revisions.py -s 20160401 -e 20160501`
   Note: You can split this command by running it multiple times and updating the
