@@ -92,6 +92,7 @@ def run(curr_date, start_time):
       max_size = max(sizes[article]) 
       avg_size = int(sum(sizes[article]) / len(sizes[article]))
       first_size = sizes[article][0]
+      # Bug: [-1] should be outside of that :()
       last_size = sizes[article[-1]]
       writer.writerow([article, view_counts[article], avg_size, min_size, max_size, first_size, last_size])
   urllib.request.urlcleanup()
