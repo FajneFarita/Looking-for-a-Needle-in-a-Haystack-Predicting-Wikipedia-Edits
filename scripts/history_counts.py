@@ -11,10 +11,10 @@ from collections import Counter
 
 # This is very memory intensive, so break processing into chunks by article name.
 CHUNK_FNS = [
-  lambda name: str(name)[0] <= 'C',
+  lambda name: str(name)[0] <= 'A',
+  lambda name: str(name)[0] > 'A' and str(name)[0] <= 'C',
   lambda name: str(name)[0] > 'C' and str(name)[0] <= 'E',
-  lambda name: str(name)[0] > 'E' and str(name)[0] <= 'G',
-  lambda name: str(name)[0] > 'G' and str(name)[0] <= 'J',
+  lambda name: str(name)[0] > 'E' and str(name)[0] <= 'J',
   lambda name: str(name)[0] > 'J' and str(name)[0] <= 'M',
   lambda name: str(name)[0] > 'M' and str(name)[0] <= 'O',
   lambda name: str(name)[0] > 'O' and str(name)[0] <= 'Q',
@@ -67,6 +67,8 @@ if __name__ == '__main__':
       history_date = curr_date - datetime.timedelta(days=30)
 
       # Lots of data to keep track of!
+      articles = Counter({})
+      
       thirty_day_view_count = Counter({})
       seven_day_view_count = Counter({})
       three_day_view_count = Counter({})
@@ -144,6 +146,8 @@ if __name__ == '__main__':
         main_views_table = combined_table[pandas.notnull(combined_table['size'])]
         talk_views_table = combined_table[pandas.notnull(combined_table['size_talk'])]
 
+        articles += pandas.Series(1, index=combined_table['Article Name']).to_dict()
+
         if curr_date - history_date > seven_days:
           thirty_day_view_count += pandas.Series(combined_table['view_count'].values, index=combined_table['Article Name']).to_dict()
           thirty_day_edit_count += pandas.Series(combined_table['edits'].values, index=combined_table['Article Name']).to_dict()
@@ -211,13 +215,11 @@ if __name__ == '__main__':
         chunk_i + 1)
       output_file_name = 'data/aggregate_data/aggregate-{}.csv'.format(curr_date.strftime("%Y%m%d"))
       create_dir(output_file_name)
-
-      # Write to a new file if this is the first chunk, otherwise append.
-      open_mode = 'w' if chunk_i == 0 else 'a'
-      with open(output_file_name, open_mode) as f:
-        writer = csv.writer(f)
+      
+      if chunk_i == 0:
         # Only write the CSV header if this is the first chunk.
-        if chunk_i == 0:
+        with open(output_file_name, 'w') as f:
+          writer = csv.writer(f)
           writer.writerow([
             'article_name', 'num_edits',
             'views_30d', 'views_7d', 'views_3d', 'views_1d',
@@ -230,7 +232,11 @@ if __name__ == '__main__':
             'talk_minor_edits_30d', 'talk_minor_edits_7d', 'talk_minor_edits_3d', 'talk_minor_edits_1d',
             'talk_avg_size_30d', 'talk_avg_size_7d', 'talk_avg_size_3d', 'talk_avg_size_1d',
             'talk_avg_size', 'talk_latest_size'])
-        for article in thirty_day_view_count:
+
+      # Write to a new file if this is the first chunk, otherwise append.
+      with open(output_file_name, 'a') as f:
+        writer = csv.writer(f)
+        for article in articles:
           writer.writerow([
             article,
             num_edits[article],
